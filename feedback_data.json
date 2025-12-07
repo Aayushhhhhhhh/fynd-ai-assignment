@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "timestamp": "2025-12-07T22:54:12.573754",
+    "rating": 5,
+    "review": " Amazing food and excellent service! Best restaurant experience ever. Will definitely come back!",
+    "ai_response": "Thank you so much for your 5-star review! We're thrilled you had a great experience. Your feedback motivates our entire team!",
+    "summary": "Amazing food and excellent service! Best restaurant experience ever. Will definitely come...",
+    "actions": "\u2022 Thank customer via email\n\u2022 Share feedback with team\n\u2022 Request online review/testimonial"
+  },
+  {
+    "id": 2,
+    "timestamp": "2025-12-07T22:56:01.023381",
+    "rating": 2,
+    "review": "Very disappointed with the service. Food was cold and staff was rude.",
+    "ai_response": "We sincerely apologize for your 2-star experience. This is not the standard we set for ourselves. Our manager will contact you shortly to make things right.",
+    "summary": "Very disappointed with the service. Food was cold and staff was rude.",
+    "actions": "\u2022 Contact customer immediately\n\u2022 Offer full refund or compensation\n\u2022 Manager review and staff training"
+  }
+]
