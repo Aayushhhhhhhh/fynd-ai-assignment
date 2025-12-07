@@ -262,7 +262,7 @@
 
 # ```bash
 
-# git clone https://github.com/YOUR\_USERNAME/fynd-ai-assignment.git
+# git clone https://github.com/Aayushhhhhhhh/fynd-ai-assignment.git
 
 # cd fynd-ai-assignment
 
