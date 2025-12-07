@@ -1,0 +1,4 @@
+Approach,Accuracy,JSON Validity,Correct/Total
+Approach 1: Basic Direct,70.0%,90.0%,7/10
+Approach 2: Few-Shot Learning,80.0%,100.0%,8/10
+Approach 3: Chain-of-Thought,90.0%,100.0%,9/10
