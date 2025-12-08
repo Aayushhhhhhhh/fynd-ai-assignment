@@ -22,28 +22,123 @@ def save_data(data):
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f, indent=2)
 
+def call_openrouter_ai(prompt):
+    """Call OpenRouter with Meta Llama 3.2 3B"""
+    api_key = os.getenv('OPENROUTER_API_KEY')
+    
+    if not api_key:
+        return None
+    
+    try:
+        response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "http://localhost:8501",
+                "X-Title": "Fynd Feedback System"
+            },
+            json={
+                "model": "meta-llama/llama-3.2-3b-instruct:free",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0.7,
+                "max_tokens": 150
+            },
+            timeout=15
+        )
+        
+        result = response.json()
+        
+        # Check for errors
+        if 'error' in result:
+            print(f"API Error: {result['error']}")
+            return None
+        
+        # Extract response
+        if 'choices' in result and len(result['choices']) > 0:
+            return result['choices'][0]['message']['content'].strip()
+        
+        return None
+        
+    except Exception as e:
+        print(f"Exception: {e}")
+        return None
+
 def generate_user_response(rating, review):
-    if rating >= 4:
-        return f"Thank you so much for your {rating}-star review! We're thrilled you had a great experience. Your feedback motivates our entire team!"
-    elif rating == 3:
-        return f"Thank you for your {rating}-star feedback. We appreciate your honest review and will work on improving your experience next time."
-    else:
-        return f"We sincerely apologize for your {rating}-star experience. This is not the standard we set for ourselves. Our manager will contact you shortly to make things right."
+    """Generate AI response for user with fallback"""
+    
+    prompt = f"""You are a professional restaurant manager responding to a customer review.
+
+Customer gave {rating} out of 5 stars and wrote:
+"{review}"
+
+Write a professional, empathetic response (2-3 sentences only). Match the tone to the rating:
+- 5-4 stars: Enthusiastic and grateful
+- 3 stars: Appreciative but focused on improvement
+- 2-1 stars: Sincerely apologetic and action-oriented
+
+Response:"""
+    
+    ai_response = call_openrouter_ai(prompt)
+    
+    # Fallback if API fails
+    if not ai_response:
+        if rating >= 4:
+            return f"Thank you so much for your wonderful {rating}-star review! We're thrilled you had such a great experience with us. We look forward to serving you again soon!"
+        elif rating == 3:
+            return f"Thank you for your {rating}-star feedback. We appreciate your honest review and will work hard to improve your experience next time you visit us."
+        else:
+            return f"We sincerely apologize for your {rating}-star experience. This is not the standard we set for ourselves, and our manager will contact you within 24 hours to make things right."
+    
+    return ai_response
 
 def generate_summary(rating, review):
-    words = review.split()[:12]
-    return " ".join(words) + ("..." if len(review.split()) > 12 else "")
+    """Generate concise summary with fallback"""
+    
+    prompt = f"""Summarize this {rating}-star restaurant review in exactly 10 words or less:
+"{review}"
+
+Summary:"""
+    
+    ai_summary = call_openrouter_ai(prompt)
+    
+    if not ai_summary:
+        words = review.split()[:12]
+        return " ".join(words) + ("..." if len(review.split()) > 12 else "")
+    
+    return ai_summary
 
 def generate_actions(rating, review):
-    if rating >= 4:
-        return "• Thank customer via email\n• Share feedback with team\n• Request online review/testimonial"
-    elif rating == 3:
-        return "• Follow up within 24 hours\n• Identify specific concerns\n• Offer discount on next visit"
-    else:
-        return "• Contact customer immediately\n• Offer full refund or compensation\n• Manager review and staff training"
+    """Generate recommended actions with fallback"""
+    
+    prompt = f"""Based on this {rating}-star restaurant review, list 2-3 specific action items for management.
+Be brief and actionable.
 
+Review: "{review}"
+
+Actions:"""
+    
+    ai_actions = call_openrouter_ai(prompt)
+    
+    if not ai_actions:
+        if rating >= 4:
+            return "• Thank customer personally\n• Share positive feedback with team\n• Request online review or testimonial"
+        elif rating == 3:
+            return "• Follow up with customer within 24 hours\n• Identify specific improvement areas\n• Offer discount on next visit"
+        else:
+            return "• Contact customer immediately\n• Offer full refund or compensation\n• Manager review and staff training"
+    
+    return ai_actions
+
+# Sidebar navigation
 page = st.sidebar.selectbox("📱 Dashboard", ["User Dashboard", "Admin Dashboard"])
 
+# USER DASHBOARD
 if page == "User Dashboard":
     st.title("⭐ Customer Feedback")
     st.write("Share your experience with us!")
@@ -58,30 +153,34 @@ if page == "User Dashboard":
         with col2:
             review = st.text_area("Your Review", placeholder="Tell us about your experience...", height=150)
         
-        submitted = st.form_submit_button("✅ Submit", use_container_width=True)
+        submitted = st.form_submit_button("✅ Submit Feedback", use_container_width=True)
         
         if submitted:
             if review.strip():
-                with st.spinner("Processing..."):
-                    ai_response = generate_user_response(rating, review)
-                    summary = generate_summary(rating, review)
-                    actions = generate_actions(rating, review)
-                    
-                    data = load_data()
-                    submission = {
-                        'id': len(data) + 1,
-                        'timestamp': datetime.now().isoformat(),
-                        'rating': rating,
-                        'review': review,
-                        'ai_response': ai_response,
-                        'summary': summary,
-                        'actions': actions
-                    }
-                    data.append(submission)
-                    save_data(data)
-                    
-                    st.success("✅ Thank you!")
-                    st.info(f"**Our Response:**\n\n{ai_response}")
+                with st.spinner("🤖 Generating AI response..."):
+                    try:
+                        ai_response = generate_user_response(rating, review)
+                        summary = generate_summary(rating, review)
+                        actions = generate_actions(rating, review)
+                        
+                        data = load_data()
+                        submission = {
+                            'id': len(data) + 1,
+                            'timestamp': datetime.now().isoformat(),
+                            'rating': rating,
+                            'review': review,
+                            'ai_response': ai_response,
+                            'summary': summary,
+                            'actions': actions
+                        }
+                        data.append(submission)
+                        save_data(data)
+                        
+                        st.success("✅ Thank you for your feedback!")
+                        st.info(f"**Our Response:**\n\n{ai_response}")
+                        
+                    except Exception as e:
+                        st.error(f"⚠️ Error: {str(e)}")
             else:
                 st.warning("⚠️ Please write a review")
     
@@ -89,6 +188,7 @@ if page == "User Dashboard":
     data = load_data()
     st.caption(f"📊 Total: {len(data)} submissions")
 
+# ADMIN DASHBOARD
 else:
     st.title("🔧 Admin Dashboard")
     
@@ -144,15 +244,15 @@ else:
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    st.markdown("**Review:**")
+                    st.markdown("**📝 Review:**")
                     st.write(item['review'])
-                    st.markdown("**Response:**")
+                    st.markdown("**🤖 Response:**")
                     st.info(item['ai_response'])
                 
                 with col2:
-                    st.markdown("**Summary:**")
+                    st.markdown("**📊 Summary:**")
                     st.write(item['summary'])
-                    st.markdown("**Actions:**")
+                    st.markdown("**🎯 Actions:**")
                     st.warning(item['actions'])
         
         st.divider()
